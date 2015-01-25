@@ -16,7 +16,7 @@ var youtubeDownload = function(songID, callback, errCallback) {
     var filePath = config.songCachePath + '/youtube/' + songID + '.opus';
 
     var stream = ytdl('http://www.youtube.com/watch?v=' + songID)
-    ffmpeg(stream)
+    var command = ffmpeg(stream)
     .noVideo()
     .audioCodec('libopus')
     .audioBitrate('192')
@@ -32,12 +32,21 @@ var youtubeDownload = function(songID, callback, errCallback) {
     })
     .save(filePath);
     console.log('transcoding ' + songID + '...');
+
+    return function(err) {
+        command.kill();
+        console.log('youtube: canceled preparing: ' + songID + ': ' + err);
+        if(fs.existsSync(filePath))
+            fs.unlinkSync(filePath);
+        errCallback();
+    };
 };
 
 var pendingCallbacks = {};
 // cache songID to disk.
 // on success: callback must be called
 // on failure: errCallback must be called with error message
+// returns a function that cancels preparing
 youtubeBackend.prepareSong = function(songID, callback, errCallback) {
     var filePath = config.songCachePath + '/youtube/' + songID + '.opus';
 
@@ -47,7 +56,7 @@ youtubeBackend.prepareSong = function(songID, callback, errCallback) {
             callback();
         return;
     } else {
-        youtubeDownload(songID, callback, errCallback);
+        return youtubeDownload(songID, callback, errCallback);
     }
 };
 
