@@ -41,36 +41,13 @@ var pendingCallbacks = {};
 youtubeBackend.prepareSong = function(songID, callback, errCallback) {
     var filePath = config.songCachePath + '/youtube/' + songID + '.opus';
 
-    // song is already downloading, run callback function when its done
-    if(pendingCallbacks[songID]) {
-        pendingCallbacks[songID].successCallbacks.push(callback);
-        pendingCallbacks[songID].errorCallbacks.push(errCallback);
-        return;
-    }
-
     if(fs.existsSync(filePath)) {
         // song was found from cache
         if(callback)
             callback();
         return;
     } else {
-        // song had to be downloaded
-        pendingCallbacks[songID] = {
-            successCallbacks: [callback],
-            errorCallbacks: [errCallback]
-        }
-
-        youtubeDownload(songID, function() {
-            for(var i = 0; i < pendingCallbacks[songID].successCallbacks.length; i++)
-                pendingCallbacks[songID].successCallbacks[i]();
-
-            delete(pendingCallbacks[songID]);
-        }, function() {
-            for(var i = 0; i < pendingCallbacks[songID].errorCallbacks.length; i++)
-                pendingCallbacks[songID].errorCallbacks[i]();
-
-            delete(pendingCallbacks[songID]);
-        });
+        youtubeDownload(songID, callback, errCallback);
     }
 };
 
@@ -129,7 +106,7 @@ var getSongDurations = function(ids, callback, errCallback) {
                 }
                 callback(durations);
             } else {
-                errCallback("youtube: unexpected error while fetching metadata");
+                errCallback('youtube: unexpected error while fetching metadata');
             }
         });
     });
@@ -160,6 +137,7 @@ youtubeBackend.search = function(query, callback, errCallback) {
             jsonData = JSON.parse(jsonData);
             var results = {};
             results.songs = {};
+
             var ids = [];
             if(jsonData.items) {
                 results.nextPageToken = jsonData.nextPageToken;
@@ -195,12 +173,13 @@ youtubeBackend.search = function(query, callback, errCallback) {
                             format: 'opus'
                         };
                     }
+
                     callback(results);
                 }, function(err) {
-                    errCallback(err);
+                    errCallback('error while searching youtube: ' + err);
                 });
             } else {
-                errCallback("youtube: no results found");
+                errCallback('youtube: no results found');
             }
         });
     });
