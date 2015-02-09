@@ -82,7 +82,8 @@ youtubeBackend.prepareSong = function(songID, progCallback, errCallback) {
     var filePath = config.songCachePath + '/youtube/' + songID + '.opus';
 
     if(fs.existsSync(filePath)) {
-        progCallback(0, true);
+        // true as first argument because there is song data
+        progCallback(true, true);
     } else {
         return youtubeDownload(songID, progCallback, errCallback);
     }
