@@ -12,51 +12,77 @@ var youtubeBackend = {};
 youtubeBackend.name = 'youtube';
 var musicCategoryId = '';
 
-var youtubeDownload = function(songID, callback, errCallback) {
-    var filePath = config.songCachePath + '/youtube/' + songID + '.opus';
+// TODO: seeking
+var encodeSong = function(origStream, seek, songID, progCallback, errCallback) {
+    var incompletePath = config.songCachePath + '/youtube/incomplete/' + songID + '.opus';
+    var incompleteStream = fs.createWriteStream(incompletePath, {flags: 'w'});
+    var encodedPath = config.songCachePath + '/youtube/' + songID + '.opus';
 
-    var stream = ytdl('http://www.youtube.com/watch?v=' + songID)
-    var command = ffmpeg(stream)
-    .noVideo()
-    .audioCodec('libopus')
-    .audioBitrate('192')
-    .on('end', function() {
-        console.log('successfully transcoded ' + songID);
-        callback();
-    })
-    .on('error', function(err) {
-        console.log('youtube: error while transcoding ' + songID + ': ' + err);
-        if(fs.existsSync(filePath))
-            fs.unlinkSync(filePath);
-        errCallback();
-    })
-    .save(filePath);
+    var command = ffmpeg(origStream)
+        .noVideo()
+        //.inputFormat('mp3')
+        //.inputOption('-ac 2')
+        .audioCodec('libopus')
+        .audioBitrate('192')
+        .format('opus')
+        .on('error', function(err) {
+            console.log('youtube: error while transcoding ' + songID + ': ' + err);
+            if(fs.existsSync(incompletePath))
+                fs.unlinkSync(incompletePath);
+            errCallback(err);
+        })
+
+    var opusStream = command.pipe(null, {end: true});
+    opusStream.on('data', function(chunk) {
+        incompleteStream.write(chunk, undefined, function() {
+            progCallback(chunk.length, false);
+        });
+    });
+    opusStream.on('end', function() {
+        incompleteStream.end(undefined, undefined, function() {
+            console.log('transcoding ended for ' + songID);
+
+            // TODO: we don't know if transcoding ended successfully or not,
+            // and there might be a race condition between errCallback deleting
+            // the file and us trying to move it to the songCache
+
+            // atomically move result to encodedPath
+            if(fs.existsSync(incompletePath))
+                fs.renameSync(incompletePath, encodedPath);
+
+            progCallback(0, true);
+        });
+    });
+
     console.log('transcoding ' + songID + '...');
-
     return function(err) {
         command.kill();
         console.log('youtube: canceled preparing: ' + songID + ': ' + err);
-        if(fs.existsSync(filePath))
-            fs.unlinkSync(filePath);
-        errCallback();
+        if(fs.existsSync(incompletePath))
+            fs.unlinkSync(incompletePath);
+        errCallback('canceled preparing: ' + songID + ': ' + err);
     };
 };
 
-var pendingCallbacks = {};
+var youtubeDownload = function(songID, progCallback, errCallback) {
+    var ytStream = ytdl('http://www.youtube.com/watch?v=' + songID)
+    var cancelEncoding = encodeSong(ytStream, 0, songID, progCallback, errCallback);
+    return function(err) {
+        cancelEncoding(err);
+    };
+};
+
 // cache songID to disk.
-// on success: callback must be called
+// on success: progCallback must be called with true as argument
 // on failure: errCallback must be called with error message
 // returns a function that cancels preparing
-youtubeBackend.prepareSong = function(songID, callback, errCallback) {
+youtubeBackend.prepareSong = function(songID, progCallback, errCallback) {
     var filePath = config.songCachePath + '/youtube/' + songID + '.opus';
 
     if(fs.existsSync(filePath)) {
-        // song was found from cache
-        if(callback)
-            callback();
-        return;
+        progCallback(0, true);
     } else {
-        return youtubeDownload(songID, callback, errCallback);
+        return youtubeDownload(songID, progCallback, errCallback);
     }
 };
 
@@ -201,7 +227,7 @@ youtubeBackend.init = function(_player, callback, errCallback) {
     player = _player;
     config = _player.config;
 
-    mkdirp(config.songCachePath + '/youtube');
+    mkdirp(config.songCachePath + '/youtube/incomplete');
 
     // find the category id for music videos
     var jsonData = "";
