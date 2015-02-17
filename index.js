@@ -226,7 +226,7 @@ youtubeBackend.search = function(query, callback, errCallback) {
 
 // called when partyplay is started to initialize the backend
 // do any necessary initialization here
-youtubeBackend.init = function(_player, callback, errCallback) {
+youtubeBackend.init = function(_player, callback) {
     player = _player;
     config = _player.config;
 
@@ -255,7 +255,7 @@ youtubeBackend.init = function(_player, callback, errCallback) {
                 }
             }
             if(musicCategoryId === '') {
-                errCallback('category for music not supported in your country!');
+                callback('category for music not supported in your country!');
             }
         });
     });
