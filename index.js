@@ -89,6 +89,11 @@ youtubeBackend.prepareSong = function(songID, progCallback, errCallback) {
     }
 };
 
+youtubeBackend.isPrepared = function(songID) {
+    var filePath = config.songCachePath + '/youtube/' + songID + '.opus';
+    return fs.existsSync(filePath);
+};
+
 // WTF youtube
 // http://stackoverflow.com/questions/22148885/converting-youtube-data-api-v3-video-duration-format-to-seconds-in-javascript-no
 var ytDurationToMillis = function(ytDuration) {
