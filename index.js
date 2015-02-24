@@ -6,7 +6,7 @@ var fs = require('fs');
 var ytdl = require('ytdl-core');
 var ffmpeg = require('fluent-ffmpeg');
 
-var config, player;
+var config, player, logger;
 
 var youtubeBackend = {};
 youtubeBackend.name = 'youtube';
@@ -26,7 +26,7 @@ var encodeSong = function(origStream, seek, songID, progCallback, errCallback) {
         .audioBitrate('192')
         .format('opus')
         .on('error', function(err) {
-            console.log('youtube: error while transcoding ' + songID + ': ' + err);
+            logger.error('error while transcoding ' + songID + ': ' + err);
             if(fs.existsSync(incompletePath))
                 fs.unlinkSync(incompletePath);
             errCallback(err);
@@ -40,7 +40,7 @@ var encodeSong = function(origStream, seek, songID, progCallback, errCallback) {
     });
     opusStream.on('end', function() {
         incompleteStream.end(undefined, undefined, function() {
-            console.log('transcoding ended for ' + songID);
+            logger.verbose('transcoding ended for ' + songID);
 
             // TODO: we don't know if transcoding ended successfully or not,
             // and there might be a race condition between errCallback deleting
@@ -56,10 +56,10 @@ var encodeSong = function(origStream, seek, songID, progCallback, errCallback) {
         });
     });
 
-    console.log('transcoding ' + songID + '...');
+    logger.verbose('transcoding ' + songID + '...');
     return function(err) {
         command.kill();
-        console.log('youtube: canceled preparing: ' + songID + ': ' + err);
+        logger.verbose('canceled preparing: ' + songID + ': ' + err);
         if(fs.existsSync(incompletePath))
             fs.unlinkSync(incompletePath);
         errCallback('canceled preparing: ' + songID + ': ' + err);
@@ -231,9 +231,10 @@ youtubeBackend.search = function(query, callback, errCallback) {
 
 // called when partyplay is started to initialize the backend
 // do any necessary initialization here
-youtubeBackend.init = function(_player, callback) {
+youtubeBackend.init = function(_player, _logger, callback) {
     player = _player;
     config = _player.config;
+    logger = _logger;
 
     mkdirp(config.songCachePath + '/youtube/incomplete');
 
