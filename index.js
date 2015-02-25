@@ -167,7 +167,7 @@ youtubeBackend.search = function(query, callback, errCallback) {
                 'pageToken': query.pageToken,
                 'type': 'video',
                 'part': 'snippet',
-                'maxResults': config.searchResultCnt,
+                'maxResults': Math.min(30, config.searchResultCnt), // TODO: pagination?, youtube doesnt like returning over 30 results
                 'regionCode': 'FI', // TODO: put this into a youtube specific config file
                 'key': creds.apiKey
             });
