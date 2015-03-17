@@ -1,6 +1,6 @@
 {
-  "name": "nodeplayer-youtube",
-  "version": "0.1.2",
+  "name": "nodeplayer-backend-youtube",
+  "version": "0.1.9",
   "description": "youtube backend for nodeplayer",
   "main": "index.js",
   "scripts": {
@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/FruitieX/nodeplayer-youtube.git"
+    "url": "https://github.com/FruitieX/nodeplayer-backend-youtube.git"
   },
   "author": "FruitieX",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/FruitieX/nodeplayer-youtube/issues"
+    "url": "https://github.com/FruitieX/nodeplayer-backend-youtube/issues"
   },
-  "homepage": "https://github.com/FruitieX/nodeplayer-youtube",
+  "homepage": "https://github.com/FruitieX/nodeplayer-backend-youtube",
   "dependencies": {
     "fluent-ffmpeg": "^2.0.0-rc3",
     "mkdirp": "^0.5.0",
