@@ -1,4 +1,7 @@
-var creds = require(process.env.HOME + '/.youtubeCreds.json');
+'use strict';
+
+var MODULE_NAME = 'backend-youtube';
+
 var mkdirp = require('mkdirp');
 var https = require('https');
 var querystring = require('querystring');
@@ -6,17 +9,23 @@ var fs = require('fs');
 var ytdl = require('ytdl-core');
 var ffmpeg = require('fluent-ffmpeg');
 
-var config, player, logger;
+var nodeplayerConfig = require('nodeplayer-config');
+var coreConfig = nodeplayerConfig.getConfig();
+var defaultConfig = require('./default-config.js');
+var config = nodeplayerConfig.getConfig(MODULE_NAME, defaultConfig);
 
 var youtubeBackend = {};
-youtubeBackend.name = 'youtube';
+youtubeBackend.name = MODULE_NAME;
 var musicCategoryId = '';
+
+var player;
+var logger;
 
 // TODO: seeking
 var encodeSong = function(origStream, seek, song, progCallback, errCallback) {
-    var incompletePath = config.songCachePath + '/youtube/incomplete/' + song.songID + '.opus';
+    var incompletePath = coreConfig.songCachePath + '/youtube/incomplete/' + song.songID + '.opus';
     var incompleteStream = fs.createWriteStream(incompletePath, {flags: 'w'});
-    var encodedPath = config.songCachePath + '/youtube/' + song.songID + '.opus';
+    var encodedPath = coreConfig.songCachePath + '/youtube/' + song.songID + '.opus';
 
     var command = ffmpeg(origStream)
         .noVideo()
@@ -80,7 +89,7 @@ var youtubeDownload = function(song, progCallback, errCallback) {
 // returns a function that cancels preparing
 youtubeBackend.prepareSong = function(song, progCallback, errCallback) {
     console.log(song);
-    var filePath = config.songCachePath + '/youtube/' + song.songID + '.opus';
+    var filePath = coreConfig.songCachePath + '/youtube/' + song.songID + '.opus';
 
     if(fs.existsSync(filePath)) {
         // true as first argument because there is song data
@@ -91,7 +100,7 @@ youtubeBackend.prepareSong = function(song, progCallback, errCallback) {
 };
 
 youtubeBackend.isPrepared = function(song) {
-    var filePath = config.songCachePath + '/youtube/' + song.songID + '.opus';
+    var filePath = coreConfig.songCachePath + '/youtube/' + song.songID + '.opus';
     return fs.existsSync(filePath);
 };
 
@@ -129,7 +138,7 @@ var getSongDurations = function(ids, callback, errCallback) {
             + '&'
             + querystring.stringify({
                 'part': 'contentDetails',
-                'key': creds.apiKey
+                'key': config.apiKey
             });
 
     var jsonData = "";
@@ -168,9 +177,9 @@ youtubeBackend.search = function(query, callback, errCallback) {
                 'pageToken': query.pageToken,
                 'type': 'video',
                 'part': 'snippet',
-                'maxResults': Math.min(30, config.searchResultCnt), // TODO: pagination?, youtube doesnt like returning over 30 results
-                'regionCode': 'FI', // TODO: put this into a youtube specific config file
-                'key': creds.apiKey
+                'maxResults': Math.min(30, coreConfig.searchResultCnt), // TODO: pagination?, youtube doesnt like returning over 30 results
+                'regionCode': config.regionCode,
+                'key': config.apiKey
             });
     var req = https.request(url, function(res) {
         res.on('data', function(chunk) {
@@ -234,18 +243,17 @@ youtubeBackend.search = function(query, callback, errCallback) {
 // do any necessary initialization here
 youtubeBackend.init = function(_player, _logger, callback) {
     player = _player;
-    config = _player.config;
     logger = _logger;
 
-    mkdirp(config.songCachePath + '/youtube/incomplete');
+    mkdirp.sync(coreConfig.songCachePath + '/youtube/incomplete');
 
     // find the category id for music videos
     var jsonData = "";
     var url = 'https://www.googleapis.com/youtube/v3/videoCategories?'
             + querystring.stringify({
                 'part': 'snippet',
-                'regionCode': 'FI', // TODO: put this into a youtube specific config file
-                'key': creds.apiKey
+                'regionCode': config.regionCode,
+                'key': config.apiKey
             });
     var req = https.request(url, function(res) {
         res.on('data', function(chunk) {
@@ -254,8 +262,12 @@ youtubeBackend.init = function(_player, _logger, callback) {
         });
         res.on('end', function() {
             jsonData = JSON.parse(jsonData);
-            for(var i = 0; i < jsonData.items.length; i++) {
-                if(jsonData.items[i].snippet.title === 'Music') {
+            if (!jsonData.items) {
+                callback('failed to get music category id, is the api key correct?');
+                return;
+            }
+            for (var i = 0; i < jsonData.items.length; i++) {
+                if (jsonData.items[i].snippet.title === 'Music') {
                     musicCategoryId = jsonData.items[i].id;
                     callback();
                     break;
