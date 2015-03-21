@@ -1,6 +1,8 @@
 nodeplayer-backend-youtube
 ==========================
 
+[![Build Status](https://travis-ci.org/FruitieX/nodeplayer-backend-youtube.svg?branch=master)](https://travis-ci.org/FruitieX/nodeplayer-backend-youtube)
+
 Youtube backend for nodeplayer
 
 Setup
