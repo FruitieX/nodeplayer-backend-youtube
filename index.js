@@ -36,10 +36,11 @@ var encodeSong = function(origStream, seek, song, progCallback, errCallback) {
         .format('opus')
         .on('error', function(err) {
             logger.error('error while transcoding ' + song.songID + ': ' + err);
-            if(fs.existsSync(incompletePath))
+            if (fs.existsSync(incompletePath)) {
                 fs.unlinkSync(incompletePath);
+            }
             errCallback(song, err);
-        })
+        });
 
     var opusStream = command.pipe(null, {end: true});
     opusStream.on('data', function(chunk) {
@@ -56,7 +57,7 @@ var encodeSong = function(origStream, seek, song, progCallback, errCallback) {
             // the file and us trying to move it to the songCache
 
             // atomically move result to encodedPath
-            if(fs.existsSync(incompletePath)) {
+            if (fs.existsSync(incompletePath)) {
                 fs.renameSync(incompletePath, encodedPath);
                 progCallback(song, 0, true);
             } else {
@@ -69,14 +70,15 @@ var encodeSong = function(origStream, seek, song, progCallback, errCallback) {
     return function(err) {
         command.kill();
         logger.verbose('canceled preparing: ' + song.songID + ': ' + err);
-        if(fs.existsSync(incompletePath))
+        if (fs.existsSync(incompletePath)) {
             fs.unlinkSync(incompletePath);
+        }
         errCallback(song, 'canceled preparing: ' + song.songID + ': ' + err);
     };
 };
 
 var youtubeDownload = function(song, progCallback, errCallback) {
-    var ytStream = ytdl('http://www.youtube.com/watch?v=' + song.songID)
+    var ytStream = ytdl('http://www.youtube.com/watch?v=' + song.songID);
     var cancelEncoding = encodeSong(ytStream, 0, song, progCallback, errCallback);
     return function(err) {
         cancelEncoding(err);
@@ -91,7 +93,7 @@ youtubeBackend.prepareSong = function(song, progCallback, errCallback) {
     console.log(song);
     var filePath = coreConfig.songCachePath + '/youtube/' + song.songID + '.opus';
 
-    if(fs.existsSync(filePath)) {
+    if (fs.existsSync(filePath)) {
         // true as first argument because there is song data
         progCallback(song, true, true);
     } else {
@@ -105,12 +107,13 @@ youtubeBackend.isPrepared = function(song) {
 };
 
 // WTF youtube
-// http://stackoverflow.com/questions/22148885/converting-youtube-data-api-v3-video-duration-format-to-seconds-in-javascript-no
+// http://stackoverflow.com/questions/22148885/
+// converting-youtube-data-api-v3-video-duration-format-to-seconds-in-javascript-no
 var ytDurationToMillis = function(ytDuration) {
     var matches = ytDuration.match(/[0-9]+[HMS]/g);
     var seconds = 0;
 
-    matches.forEach(function (part) {
+    matches.forEach(function(part) {
         var unit = part.charAt(part.length - 1);
         var amount = parseInt(part.slice(0, -1));
 
@@ -133,15 +136,15 @@ var ytDurationToMillis = function(ytDuration) {
 };
 
 var getSongDurations = function(ids, callback, errCallback) {
-    var url = 'https://www.googleapis.com/youtube/v3/videos?'
-            + 'id=' + ids.join(',')
-            + '&'
-            + querystring.stringify({
+    var url = 'https://www.googleapis.com/youtube/v3/videos?' +
+            'id=' + ids.join(',') +
+            '&' +
+            querystring.stringify({
                 'part': 'contentDetails',
                 'key': config.apiKey
             });
 
-    var jsonData = "";
+    var jsonData = '';
 
     var req = https.request(url, function(res) {
         res.on('data', function(chunk) {
@@ -152,8 +155,8 @@ var getSongDurations = function(ids, callback, errCallback) {
             var durations = {};
 
             jsonData = JSON.parse(jsonData);
-            if(jsonData) {
-                for(var i = 0; i < jsonData.items.length; i++) {
+            if (jsonData) {
+                for (var i = 0; i < jsonData.items.length; i++) {
                     durations[jsonData.items[i].id] =
                         ytDurationToMillis(jsonData.items[i].contentDetails.duration);
                 }
@@ -170,14 +173,15 @@ var getSongDurations = function(ids, callback, errCallback) {
 // on success: callback must be called with a list of song objects
 // on failure: errCallback must be called with error message
 youtubeBackend.search = function(query, callback, errCallback) {
-    var jsonData = "";
-    var url = 'https://www.googleapis.com/youtube/v3/search?'
-            + querystring.stringify({
+    var jsonData = '';
+    var url = 'https://www.googleapis.com/youtube/v3/search?' +
+            // TODO: pagination?, youtube doesnt like returning over 30 results
+            querystring.stringify({
                 'q': query.terms,
                 'pageToken': query.pageToken,
                 'type': 'video',
                 'part': 'snippet',
-                'maxResults': Math.min(30, coreConfig.searchResultCnt), // TODO: pagination?, youtube doesnt like returning over 30 results
+                'maxResults': Math.min(30, coreConfig.searchResultCnt),
                 'regionCode': config.regionCode,
                 'key': config.apiKey
             });
@@ -192,20 +196,21 @@ youtubeBackend.search = function(query, callback, errCallback) {
             results.songs = {};
 
             var ids = [];
-            if(jsonData.items) {
+            if (jsonData.items) {
                 results.nextPageToken = jsonData.nextPageToken;
                 results.prevPageToken = jsonData.prevPageToken;
 
-                for(var i = 0; i < jsonData.items.length; i++) {
+                for (var i = 0; i < jsonData.items.length; i++) {
                     ids.push(jsonData.items[i].id.videoId);
                 }
 
                 getSongDurations(ids, function(durations) {
-                    for(var i = 0; i < jsonData.items.length; i++) {
-                        var artist, title;
+                    for (var i = 0; i < jsonData.items.length; i++) {
+                        var artist;
+                        var title;
                         var splitTitle = jsonData.items[i].snippet.title.split(/\s-\s(.+)?/);
                         // title could not be parsed out
-                        if(!splitTitle[1]) {
+                        if (!splitTitle[1]) {
                             artist = null;
                             title = splitTitle[0];
                         } else {
@@ -248,9 +253,9 @@ youtubeBackend.init = function(_player, _logger, callback) {
     mkdirp.sync(coreConfig.songCachePath + '/youtube/incomplete');
 
     // find the category id for music videos
-    var jsonData = "";
-    var url = 'https://www.googleapis.com/youtube/v3/videoCategories?'
-            + querystring.stringify({
+    var jsonData = '';
+    var url = 'https://www.googleapis.com/youtube/v3/videoCategories?' +
+            querystring.stringify({
                 'part': 'snippet',
                 'regionCode': config.regionCode,
                 'key': config.apiKey
@@ -273,7 +278,7 @@ youtubeBackend.init = function(_player, _logger, callback) {
                     break;
                 }
             }
-            if(musicCategoryId === '') {
+            if (musicCategoryId === '') {
                 callback('category for music not supported in your country!');
             }
         });
