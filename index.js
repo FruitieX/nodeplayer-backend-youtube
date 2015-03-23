@@ -1,6 +1,7 @@
 'use strict';
 
-var MODULE_NAME = 'backend-youtube';
+var MODULE_NAME = 'youtube';
+var MODULE_TYPE = 'backend';
 
 var mkdirp = require('mkdirp');
 var https = require('https');
@@ -12,7 +13,7 @@ var ffmpeg = require('fluent-ffmpeg');
 var nodeplayerConfig = require('nodeplayer').config;
 var coreConfig = nodeplayerConfig.getConfig();
 var defaultConfig = require('./default-config.js');
-var config = nodeplayerConfig.getConfig(MODULE_NAME, defaultConfig);
+var config = nodeplayerConfig.getConfig(MODULE_TYPE + '-' + MODULE_NAME, defaultConfig);
 
 var youtubeBackend = {};
 youtubeBackend.name = MODULE_NAME;
@@ -227,7 +228,7 @@ youtubeBackend.search = function(query, callback, errCallback) {
                             duration: durations[jsonData.items[i].id.videoId],
                             songID: jsonData.items[i].id.videoId,
                             score: 100 * (numItems - i) / numItems, // TODO: is there a better way?
-                            backendName: 'youtube',
+                            backendName: MODULE_NAME,
                             format: 'opus'
                         };
                     }
