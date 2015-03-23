@@ -91,7 +91,6 @@ var youtubeDownload = function(song, progCallback, errCallback) {
 // on failure: errCallback must be called with error message
 // returns a function that cancels preparing
 youtubeBackend.prepareSong = function(song, progCallback, errCallback) {
-    console.log(song);
     var filePath = coreConfig.songCachePath + '/youtube/' + song.songID + '.opus';
 
     if (fs.existsSync(filePath)) {

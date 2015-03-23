@@ -1,6 +1,6 @@
 {
   "name": "nodeplayer-backend-youtube",
-  "version": "0.1.999",
+  "version": "0.1.9991",
   "description": "youtube backend for nodeplayer",
   "main": "index.js",
   "scripts": {
