@@ -127,8 +127,6 @@ var ytDurationToMillis = function(ytDuration) {
             case 'S':
                 seconds += amount;
                 break;
-            default:
-                // noop
         }
     });
 
@@ -223,7 +221,10 @@ youtubeBackend.search = function(query, callback, errCallback) {
                             artist: artist,
                             title: title,
                             album: jsonData.items[i].snippet.channelTitle,
-                            albumArt: jsonData.items[i].snippet.thumbnails.default,
+                            albumArt: {
+                                hq: jsonData.items[i].snippet.thumbnails.high.url,
+                                lq: jsonData.items[i].snippet.thumbnails.default.url
+                            },
                             duration: durations[jsonData.items[i].id.videoId],
                             songID: jsonData.items[i].id.videoId,
                             score: 100 * (numItems - i) / numItems, // TODO: is there a better way?
