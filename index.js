@@ -227,7 +227,7 @@ youtubeBackend.search = function(query, callback, errCallback) {
                             },
                             duration: durations[jsonData.items[i].id.videoId],
                             songID: jsonData.items[i].id.videoId,
-                            score: 100 * (numItems - i) / numItems, // TODO: is there a better way?
+                            score: config.maxScore * (numItems - i) / numItems, // TODO: is there a better way?
                             backendName: MODULE_NAME,
                             format: 'opus'
                         };
