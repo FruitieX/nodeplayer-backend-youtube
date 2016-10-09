@@ -80,7 +80,7 @@ module.exports = class YouTube extends Backend {
                   lq: jsonData.items[i].snippet.thumbnails.default.url
                 },
                 duration: durations[jsonData.items[i].id.videoId],
-                songID: jsonData.items[i].id.videoId,
+                songId: jsonData.items[i].id.videoId,
                 // TODO: no relevancy in score?
                 score: this.config.maxScore * (numItems - i) / numItems,
                 backendName: this.name,
