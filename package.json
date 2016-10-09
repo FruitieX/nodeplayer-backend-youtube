@@ -17,10 +17,10 @@
   },
   "homepage": "https://github.com/FruitieX/nodeplayer-backend-youtube",
   "dependencies": {
-    "fluent-ffmpeg": "^2.0.0-rc3",
+    "fluent-ffmpeg": "^2.1.0",
     "mkdirp": "^0.5.0",
     "nodeplayer": "*",
-    "ytdl-core": "^0.3.1"
+    "ytdl-core": "^0.7.18"
   },
   "devDependencies": {
     "chai": "^2.1.2",

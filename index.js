@@ -6,12 +6,23 @@ const defaultConfig = require('./default-config');
 const ytdl = require('ytdl-core');
 const https = require('https');
 const querystring = require('querystring');
+const path = require('path');
+const fs = require('fs');
 
 module.exports = class YouTube extends Backend {
   constructor(callback) {
     super(defaultConfig);
 
     callback(null, this);
+  }
+
+  isPrepared(song) {
+    const filePath = path.join(this.coreConfig.songCachePath, 'youtube', song.songId + '.opus');
+    return fs.existsSync(filePath);
+  }
+
+  getSongStream(song, callback) {
+    callback(null, ytdl(`http://www.youtube.com/watch?v=${song.songId}`));
   }
 
   /* Search for music from the backend
