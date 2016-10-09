@@ -18,7 +18,7 @@ module.exports = class YouTube extends Backend {
    * On success: callback must be called with a list of song objects
    * On failure: errCallback must be called with error message
    */
-  search(query, callback, errCallback) {
+  search(query, callback) {
     var jsonData = '';
     var url = 'https://www.googleapis.com/youtube/v3/search?';
 
@@ -33,8 +33,6 @@ module.exports = class YouTube extends Backend {
       'key': this.config.apiKey
     });
 
-    console.log(url);
-
     var req = https.request(url, (res) => {
       res.on('data', (chunk) => {
         jsonData += chunk.toString('utf8');
@@ -43,7 +41,7 @@ module.exports = class YouTube extends Backend {
       res.on('end', () => {
         jsonData = JSON.parse(jsonData);
         var results = {};
-        results.songs = {};
+        results.songs = [];
 
         var ids = [];
         if (jsonData.items) {
@@ -54,7 +52,11 @@ module.exports = class YouTube extends Backend {
             ids.push(jsonData.items[i].id.videoId);
           }
 
-          this.getSongDurations(ids, (durations) => {
+          this.getSongDurations(ids, (err, durations) => {
+            if (err) {
+              return callback(`error while getting song durations from youtube: ${err}`);
+            }
+
             for (var i = 0; i < jsonData.items.length; i++) {
               var artist;
               var title;
@@ -69,7 +71,7 @@ module.exports = class YouTube extends Backend {
               }
 
               var numItems = jsonData.items.length;
-              results.songs[jsonData.items[i].id.videoId] = {
+              results.songs.push({
                 artist: artist,
                 title: title,
                 album: jsonData.items[i].snippet.channelTitle,
@@ -83,22 +85,22 @@ module.exports = class YouTube extends Backend {
                 score: this.config.maxScore * (numItems - i) / numItems,
                 backendName: this.name,
                 format: 'opus'
-              };
+              });
             }
 
-            callback(results);
+            callback(null, results);
           }, (err) => {
-            errCallback('error while searching youtube: ' + err);
+            callback('error while searching youtube: ' + err);
           });
         } else {
-          errCallback('youtube: no results found');
+          callback('youtube: no results found');
         }
       });
     });
     req.end();
   }
 
-  getSongDurations(ids, callback, errCallback) {
+  getSongDurations(ids, callback) {
     var url = 'https://www.googleapis.com/youtube/v3/videos?' +
       'id=' + ids.join(',') +
       '&' +
@@ -123,9 +125,9 @@ module.exports = class YouTube extends Backend {
               durations[jsonData.items[i].id] =
                 this.ytDurationToMillis(jsonData.items[i].contentDetails.duration);
             }
-            callback(durations);
+            callback(null, durations);
           } else {
-            errCallback('youtube: unexpected error while fetching metadata');
+            callback('youtube: unexpected error while fetching metadata');
           }
         });
       });
