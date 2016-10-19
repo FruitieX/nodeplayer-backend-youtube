@@ -13,7 +13,7 @@ module.exports = class YouTube extends Backend {
   constructor(callback) {
     super(defaultConfig);
 
-    callback(null, this);
+    callback(null);
   }
 
   isPrepared(song) {
